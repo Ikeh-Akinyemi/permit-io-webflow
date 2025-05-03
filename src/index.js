@@ -13,3 +13,8 @@ const permit = new Permit({
   token: process.env.PERMIT_API_KEY,
   pdp: process.env.PDP_URL
 });
+
+app.listen(port, () => {
+  console.log(`Authorization server running on port ${port}`);
+  console.log(`Connected to Permit.io PDP at ${process.env.PDP_URL || 'http://localhost:7766'}`);
+});
