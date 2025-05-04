@@ -14,6 +14,53 @@ const permit = new Permit({
   pdp: process.env.PDP_URL
 });
 
+// User sync endpoint
+app.post('/api/auth/sync-user', async (req, res) => {
+  try {
+    const { userId, email, attributes } = req.body;
+    
+    const user = await permit.api.users.sync({
+      key: userId,
+      email: email,
+      attributes: attributes
+    });
+    
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Permission check endpoint
+app.post('/api/auth/check-permission', async (req, res) => {
+  try {
+    const { userId, action, resource } = req.body;
+    
+    const allowed = await permit.check(userId, action, resource);
+    
+    res.json({ allowed });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Role assignment endpoint
+app.post('/api/auth/assign-role', async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+    
+    const result = await permit.api.roleAssignments.assign({
+      user: userId,
+      role: role,
+      tenant: 'default'
+    });
+    
+    res.json({ success: true, result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Authorization server running on port ${port}`);
   console.log(`Connected to Permit.io PDP at ${process.env.PDP_URL || 'http://localhost:7766'}`);
