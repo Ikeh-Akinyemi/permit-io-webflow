@@ -61,6 +61,23 @@ app.post('/api/auth/assign-role', async (req, res) => {
   }
 });
 
+app.post('/api/auth/get-user-attributes', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    // Get user from Permit IO
+    const user = await permit.api.users.get(userId);
+    
+    res.json({
+      success: true,
+      attributes: user.attributes || {}
+    });
+  } catch (error) {
+    console.error('Error getting user attributes:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Authorization server running on port ${port}`);
   console.log(`Connected to Permit.io PDP at ${process.env.PDP_URL || 'http://localhost:7766'}`);
