@@ -1,3 +1,20 @@
+<style>
+    .loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+    }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   // References to elements
@@ -112,14 +129,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Make sure the signin button is visible
     signinButton.style.display = 'block';
-    signinButtonContainer.textContent = "";
   }
 
   // Show elements based on user permissions
   async function showAuthorizedUI(email) {
+
+    // Create and show loading placeholder
+    const mainWrapper = document.querySelector('.main-wrapper');
+
+    // Add a placeholder overlay to cover the main content
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'loading-overlay';
+    loadingOverlay.innerHTML = `
+    <div class="loading-spinner"></div>
+    <p>Loading your dashboard...</p>
+  `;
+
+    // Apply styles to the overlay to cover the main-wrapper
+    loadingOverlay.style.position = 'absolute';
+    loadingOverlay.style.top = '0';
+    loadingOverlay.style.left = '0';
+    loadingOverlay.style.width = '100%';
+    loadingOverlay.style.height = '100%';
+    loadingOverlay.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+    loadingOverlay.style.display = 'flex';
+    loadingOverlay.style.flexDirection = 'column';
+    loadingOverlay.style.justifyContent = 'center';
+    loadingOverlay.style.alignItems = 'center';
+    loadingOverlay.style.zIndex = '1000';
+
+    // Hide main content while loading
+    mainWrapper.style.visibility = 'hidden';
+
+    // Add overlay to the DOM (as a sibling to main-wrapper)
+    mainWrapper.parentNode.insertBefore(loadingOverlay, mainWrapper.nextSibling);
+
+
     // Hide signin button and login email
     signinButton.style.display = 'none';
     signinButtonContainer.textContent = email;
+
+    document.querySelectorAll('.roles-container .role-btn').forEach(button => {
+      button.style.display = 'none';
+      button.classList.remove('bg-role-btn');
+
+      if (button.textContent == 'Administrator' && email == "admin@example.com") {
+        button.style.display = 'block';
+      } else if (button.textContent == 'Event Organizer' && email == "organizer@example.com") {
+        button.style.display = 'block';
+      } else if (button.textContent == 'Event Attendee' && email == "attendee@example.com") {
+        button.style.display = 'block';
+      }
+    });
 
     // Remove hidden class elements
     const roleDeptWrapper = document.querySelector('.role-dept-wrapper');
@@ -135,8 +196,21 @@ document.addEventListener('DOMContentLoaded', function () {
       card.classList.remove('hidden');
     });
 
+    // Check attribute-based permissions
+    await checkAttributeBasedPermissions(email);
+
     // Check permissions and show appropriate elements
     await checkAndApplyPermissions(email);
+
+
+
+    // All UI updates complete, now we can show the content
+    setTimeout(() => {
+      // Remove the loading overlay
+      loadingOverlay.remove();
+      // Show the main content
+      mainWrapper.style.visibility = 'visible';
+    }, 200); // Small delay to ensure everything is rendered
   }
 
 
@@ -174,37 +248,50 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Check user permissions and apply to UI
-  async function checkAndApplyPermissions(email) {
+  // Show success message
+  function showSuccess(message) {
+    successMessage.textContent = message;
+    successMessage.parentElement.style.display = 'block';
+    errorMessage.parentElement.style.display = 'none';
+  }
+
+  // Show error message
+  function showError(message) {
+    errorMessage.textContent = message;
+    errorMessage.parentElement.style.display = 'block';
+    successMessage.parentElement.style.display = 'none';
+  }
+
+  // Check department-based permissions for elements
+  async function checkAttributeBasedPermissions(email) {
     try {
-      // Get all elements with permission requirements
-      const permissionElements = document.querySelectorAll('[data-permission]');
+      if (email == "admin@example.com") return;
+      // Get user department from Permit IO
+      const userResponse = await fetch(`${API_URL}/api/auth/get-user-attributes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId: email })
+      });
 
-      // Check each element's permission
-      for (const element of permissionElements) {
-        const action = element.dataset.permission;
-        const resource = element.dataset.resource || 'Event';
+      const userData = await userResponse.json();
+      const userDepartment = userData.attributes?.department || '';
 
-        // Check permission with Permit IO
-        const response = await fetch(`${API_URL}/api/auth/check-permission`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId: email,
-            action: action,
-            resource: resource
-          })
-        });
+      // Find all elements with data-department attribute
+      const departmentElements = document.querySelectorAll('[data-department]');
 
-        const data = await response.json();
-
-        // Show/hide element based on permission
-        element.style.display = data.allowed ? 'block' : 'none';
-      }
+      // Hide elements that don't match user's department
+      departmentElements.forEach(element => {
+        const elementDepartment = element.dataset.department;
+        if (elementDepartment && elementDepartment !== userDepartment) {
+          element.style.display = 'none';
+        } else {
+          element.style.display = 'block';
+        }
+      });
     } catch (error) {
-      console.error('Permission check error:', error);
+      console.error('ABAC check error:', error);
     }
   }
 });
