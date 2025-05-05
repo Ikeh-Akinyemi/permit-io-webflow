@@ -17,12 +17,12 @@ const permit = new Permit({
 // User sync endpoint
 app.post('/api/auth/sync-user', async (req, res) => {
   try {
-    const { userId, email, attributes } = req.body;
+    const { userId, email, department } = req.body;
     
     const user = await permit.api.users.sync({
       key: userId,
       email: email,
-      attributes: attributes
+      attributes: { department }
     });
     
     res.json({ success: true, user });

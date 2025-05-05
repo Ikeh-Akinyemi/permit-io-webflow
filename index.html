@@ -1,0 +1,211 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // References to elements
+  const signinButton = document.querySelector('.signin-button');
+  const signinButtonContainer = document.querySelector('.sign_in_container');
+  const signinDialog = document.querySelector('.signin-dialog');
+  const formContainer = document.querySelector('.form-container');
+  const emailForm = document.querySelector('form');
+  const successMessage = document.querySelector('.success-message .s-text');
+  const errorMessage = document.querySelector('.error-message .e-text');
+
+  const roleDeptWrapper = document.querySelector('.role-dept-wrapper');
+  const createEventBtn = document.querySelector('.create-event-btn');
+  const cards = document.querySelector('.card_x'); // there's two of this class.
+
+  // API endpoint
+  const API_URL = 'https://permit-io-webflow-1.onrender.com';
+
+  // Check if user is logged in
+  const userEmail = sessionStorage.getItem('user_email');
+  if (userEmail) {
+    showAuthorizedUI(userEmail);
+  } else {
+    hideAuthorizedElements();
+  }
+
+  // Show signin dialog when button is clicked
+  signinButton.addEventListener('click', function () {
+    signinDialog.style.display = 'block';
+  });
+
+  // Handle form submission
+  emailForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const emailInput = emailForm.querySelector('input[type="email"]');
+    const email = emailInput.value.trim();
+
+    // Get the selected role from the dropdown
+    const roleSelect = emailForm.querySelector('select');
+    const role = roleSelect.value;
+
+    if (!email) {
+      showError('Please enter a valid email address');
+      return;
+    }
+
+    authenticateUser(email, role);
+  });
+
+
+  // Authenticate user with Permit IO
+  async function authenticateUser(email, department) {
+    try {
+      // Show loading state
+      formContainer.classList.add('loading');
+
+      // Sync user with Permit IO
+      const response = await fetch(`${API_URL}/api/auth/sync-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ userId: email, email, department })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Store user email in session
+        sessionStorage.setItem('user_email', email);
+
+        // Show success message
+        showSuccess('Authentication successful!');
+
+        // Close dialog after 1 second
+        setTimeout(() => {
+          signinDialog.style.display = 'none';
+          showAuthorizedUI(email);
+        }, 300);
+      } else {
+        showError('Authentication failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      showError('Authentication failed. Please try again.');
+    } finally {
+      formContainer.classList.remove('loading');
+    }
+  }
+
+  // Hide elements that require authorization
+  function hideAuthorizedElements() {
+    // Hide elements with data-permission attribute
+    document.querySelectorAll('[data-permission]').forEach(element => {
+      element.style.display = 'none';
+    });
+
+    // Hide elements
+    const roleDeptWrapper = document.querySelector('.role-dept-wrapper');
+    if (roleDeptWrapper) {
+      roleDeptWrapper.classList.add('hidden');
+    }
+    const createEventBtn = document.querySelector('.create-event-btn');
+    if (createEventBtn) {
+      createEventBtn.classList.add('hidden');
+    }
+    const cards = document.querySelectorAll('.card_x');
+    cards.forEach(card => {
+      card.classList.add('hidden');
+    });
+
+    // Make sure the signin button is visible
+    signinButton.style.display = 'block';
+    signinButtonContainer.textContent = "";
+  }
+
+  // Show elements based on user permissions
+  async function showAuthorizedUI(email) {
+    // Hide signin button and login email
+    signinButton.style.display = 'none';
+    signinButtonContainer.textContent = email;
+
+    // Remove hidden class elements
+    const roleDeptWrapper = document.querySelector('.role-dept-wrapper');
+    if (roleDeptWrapper) {
+      roleDeptWrapper.classList.remove('hidden');
+    }
+    const createEventBtn = document.querySelector('.create-event-btn');
+    if (createEventBtn) {
+      createEventBtn.classList.remove('hidden');
+    }
+    const cards = document.querySelectorAll('.card_x');
+    cards.forEach(card => {
+      card.classList.remove('hidden');
+    });
+
+    // Check permissions and show appropriate elements
+    await checkAndApplyPermissions(email);
+  }
+
+
+  // Check user permissions and apply to UI
+  async function checkAndApplyPermissions(email) {
+    try {
+      // Get all elements with permission requirements
+      const permissionElements = document.querySelectorAll('[data-permission]');
+
+      // Check each element's permission
+      for (const element of permissionElements) {
+        const action = element.dataset.permission;
+        const resource = element.dataset.resource || 'Event';
+
+        // Check permission with Permit IO
+        const response = await fetch(`${API_URL}/api/auth/check-permission`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: email,
+            action: action,
+            resource: resource
+          })
+        });
+
+        const data = await response.json();
+
+        // Show/hide element based on permission
+        element.style.display = data.allowed ? 'block' : 'none';
+      }
+    } catch (error) {
+      console.error('Permission check error:', error);
+    }
+  }
+
+  // Check user permissions and apply to UI
+  async function checkAndApplyPermissions(email) {
+    try {
+      // Get all elements with permission requirements
+      const permissionElements = document.querySelectorAll('[data-permission]');
+
+      // Check each element's permission
+      for (const element of permissionElements) {
+        const action = element.dataset.permission;
+        const resource = element.dataset.resource || 'Event';
+
+        // Check permission with Permit IO
+        const response = await fetch(`${API_URL}/api/auth/check-permission`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: email,
+            action: action,
+            resource: resource
+          })
+        });
+
+        const data = await response.json();
+
+        // Show/hide element based on permission
+        element.style.display = data.allowed ? 'block' : 'none';
+      }
+    } catch (error) {
+      console.error('Permission check error:', error);
+    }
+  }
+});
+</script>
