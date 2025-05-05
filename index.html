@@ -265,7 +265,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // Check department-based permissions for elements
   async function checkAttributeBasedPermissions(email) {
     try {
-      if (email == "admin@example.com") return;
       // Get user department from Permit IO
       const userResponse = await fetch(`${API_URL}/api/auth/get-user-attributes`, {
         method: 'POST',
@@ -277,6 +276,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const userData = await userResponse.json();
       const userDepartment = userData.attributes?.department || '';
+      
+      
+      // this handles administration.
+      if (userDepartment == "*") return.
 
       // Find all elements with data-department attribute
       const departmentElements = document.querySelectorAll('[data-department]');
