@@ -25,6 +25,12 @@ app.post('/api/auth/sync-user', async (req, res) => {
       attributes: { department }
     });
     
+    await permit.api.roleAssignments.assign({
+      user: userId,
+      role: "Attendee",
+      tenant: 'default'
+    });
+    
     res.json({ success: true, user });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
