@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function () {
         button.style.display = 'block';
       } else if (button.textContent == 'Event Organizer' && email == "organizer@example.com") {
         button.style.display = 'block';
-      } else if (button.textContent == 'Event Attendee' && email == "attendee@example.com") {
+      } else if (button.textContent == 'Event Attendee' && email != "admin@example.com" && email != "organizer@example.com") {
         button.style.display = 'block';
       }
     });
@@ -276,8 +276,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const userData = await userResponse.json();
       const userDepartment = userData.attributes?.department || '';
-      
-      
+
+
       // this handles administration.
       if (userDepartment == "*") return.
 
